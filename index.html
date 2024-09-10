@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>El Cerito - Jugando contra la computadora</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        .header {
+            width: 100%;
+            background-color: #007bff;
+            color: white;
+            text-align: center;
+            padding: 20px 0;
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+
+        .game-board {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            grid-gap: 5px;
+            width: 310px;
+            height: 310px;
+            background-color: #007bff;
+            padding: 5px;
+            border-radius: 10px;
+            box-shadow: 0 5px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .cell {
+            background-color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 48px;
+            font-weight: bold;
+            cursor: pointer;
+            border-radius: 10px;
+            transition: background-color 0.3s ease;
+            height: 100px;
+        }
+
+        .cell:hover {
+            background-color: #f0f0f0;
+        }
+
+        .status {
+            margin-top: 20px;
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .scoreboard {
+            margin-top: 20px;
+            font-size: 16px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .reset-button {
+            margin-top: 20px;
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 18px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .reset-button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">El Cerito</div>
+
+    <div class="game-board" id="board">
+        <div class="cell" data-index="0"></div>
+        <div class="cell" data-index="1"></div>
+        <div class="cell" data-index="2"></div>
+        <div class="cell" data-index="3"></div>
+        <div class="cell" data-index="4"></div>
+        <div class="cell" data-index="5"></div>
+        <div class="cell" data-index="6"></div>
+        <div class="cell" data-index="7"></div>
+        <div class="cell" data-index="8"></div>
+    </div>
+
+    <div class="status" id="status">Turno de X</div>
+    
+    <div class="scoreboard" id="scoreboard">
+        <p>Victorias de X: <span id="xWins">0</span></p>
+        <p>Victorias de O (Computadora): <span id="oWins">0</span></p>
+        <p>Empates: <span id="ties">0</span></p>
+    </div>
+    
+    <button class="reset-button" id="resetButton">Reiniciar</button>
+
+    <script>
+        const board = document.getElementById('board');
+        const statusDisplay = document.getElementById('status');
+        const resetButton = document.getElementById('resetButton');
+        const xWinsDisplay = document.getElementById('xWins');
+        const oWinsDisplay = document.getElementById('oWins');
+        const tiesDisplay = document.getElementById('ties');
+        
+        let cells = Array.from(document.querySelectorAll('.cell'));
+        let currentPlayer = 'X'; // El jugador humano es X, la computadora es O.
+        let gameActive = true;
+        let gameState = ["", "", "", "", "", "", "", "", ""];
+        let xWins = 0;
+        let oWins = 0;
+        let ties = 0;
+
+        const winningConditions = [
+            [0, 1, 2],
+            [3, 4, 5],
+            [6, 7, 8],
+            [0, 3, 6],
+            [1, 4, 7],
+            [2, 5, 8],
+            [0, 4, 8],
+            [2, 4, 6]
+        ];
+
+        const handleCellClick = (clickedCell, index) => {
+            if (gameState[index] !== "" || !gameActive || currentPlayer !== 'X') return; // Solo permite al jugador humano jugar.
+
+            gameState[index] = currentPlayer;
+            clickedCell.innerHTML = currentPlayer;
+
+            if (checkWinner()) {
+                statusDisplay.innerHTML = `Ganador: ${currentPlayer}`;
+                gameActive = false;
+                updateScores(currentPlayer);
+            } else if (!gameState.includes("")) {
+                statusDisplay.innerHTML = 'Empate';
+                gameActive = false;
+                ties++;
+                tiesDisplay.textContent = ties;
+            } else {
+                currentPlayer = 'O'; // Turno de la computadora.
+                statusDisplay.innerHTML = 'Turno de O (Computadora)';
+                setTimeout(computerMove, 500); // Retraso para simular el tiempo de reacción de la computadora.
+            }
+        };
+
+        const computerMove = () => {
+            if (!gameActive) return;
+
+            let bestMove = minimax(gameState, 'O').index;
+            gameState[bestMove] = 'O';
+            cells[bestMove].innerHTML = 'O';
+
+            if (checkWinner()) {
+                statusDisplay.innerHTML = `Ganador: O (Computadora)`;
+                gameActive = false;
+                updateScores('O');
+            } else if (!gameState.includes("")) {
+                statusDisplay.innerHTML = 'Empate';
+                gameActive = false;
+                ties++;
+                tiesDisplay.textContent = ties;
+            } else {
+                currentPlayer = 'X'; // Vuelve a ser el turno del jugador humano.
+                statusDisplay.innerHTML = 'Turno de X';
+            }
+        };
+
+        const updateScores = (winner) => {
+            if (winner === 'X') {
+                xWins++;
+                xWinsDisplay.textContent = xWins;
+            } else if (winner === 'O') {
+                oWins++;
+                oWinsDisplay.textContent = oWins;
+            }
+        };
+
+        const minimax = (newBoard, player) => {
+            const availSpots = newBoard.map((val, index) => val === "" ? index : null).filter(val => val !== null);
+
+            if (checkWinnerMinimax(newBoard, 'X')) {
+                return { score: -10 };
+            } else if (checkWinnerMinimax(newBoard, 'O')) {
+                return { score: 10 };
+            } else if (availSpots.length === 0) {
+                return { score: 0 };
+            }
+
+            const moves = [];
+
+            for (let i = 0; i < availSpots.length; i++) {
+                const move = {};
+                move.index = availSpots[i];
+                newBoard[availSpots[i]] = player;
+
+                if (player === 'O') {
+                    const result = minimax(newBoard, 'X');
+                    move.score = result.score;
+                } else {
+                    const result = minimax(newBoard, 'O');
+                    move.score = result.score;
+                }
+
+                newBoard[availSpots[i]] = "";
+
+                moves.push(move);
+            }
+
+            let bestMove;
+            if (player === 'O') {
+                let bestScore = -Infinity;
+                for (let i = 0; i < moves.length; i++) {
+                    if (moves[i].score > bestScore) {
+                        bestScore = moves[i].score;
+                        bestMove = i;
+                    }
+                }
+            } else {
+                let bestScore = Infinity;
+                for (let i = 0; i < moves.length; i++) {
+                    if (moves[i].score < bestScore) {
+                        bestScore = moves[i].score;
+                        bestMove = i;
+                    }
+                }
+            }
+
+            return moves[bestMove];
+        };
+
+        const checkWinnerMinimax = (board, player) => {
+            return winningConditions.some(condition => 
+                condition.every(index => board[index] === player)
+            );
+        };
+
+        const checkWinner = () => {
+            let roundWon = false;
+            for (let i = 0; i < winningConditions.length; i++) {
+                const [a, b, c] = winningConditions[i];
+                if (gameState[a] && gameState[a] === gameState[b] && gameState[a] === gameState[c]) {
+                    roundWon = true;
+                    break;
+                }
+            }
+            return roundWon;
+        };
+
+        const resetGame = () => {
+            gameState = ["", "", "", "", "", "", "", "", ""];
+            gameActive = true;
+            currentPlayer = 'X';
+            statusDisplay.innerHTML = `Turno de ${currentPlayer}`;
+            cells.forEach(cell => cell.innerHTML = "");
+        };
+
+        cells.forEach((cell, index) => {
+            cell.addEventListener('click', () => handleCellClick(cell, index));
+        });
+
+        resetButton.addEventListener('click', resetGame);
+    </script>
+
+</body>
+</html>
